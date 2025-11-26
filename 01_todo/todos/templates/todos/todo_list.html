@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Todo List{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Todos</h1>
+    <a href="{% url 'todos:todo_create' %}" class="btn btn-primary">Create New Todo</a>
+</div>
+
+{% if todos %}
+    <div class="row">
+        {% for todo in todos %}
+        <div class="col-md-6 mb-3">
+            <div class="card {% if todo.is_resolved %}border-success{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title">
+                                {% if todo.is_resolved %}
+                                    <del>{{ todo.title }}</del>
+                                    <span class="badge bg-success">Resolved</span>
+                                {% else %}
+                                    {{ todo.title }}
+                                {% endif %}
+                            </h5>
+                            {% if todo.description %}
+                                <p class="card-text">{{ todo.description }}</p>
+                            {% endif %}
+                            <small class="text-muted">
+                                Created: {{ todo.created_at|date:"M d, Y H:i" }}
+                                {% if todo.due_date %}
+                                    | Due: {{ todo.due_date|date:"M d, Y H:i" }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="btn-group-vertical btn-group-sm">
+                            <a href="{% url 'todos:todo_toggle' todo.pk %}" class="btn btn-sm {% if todo.is_resolved %}btn-warning{% else %}btn-success{% endif %}">
+                                {% if todo.is_resolved %}Mark Unresolved{% else %}Mark Resolved{% endif %}
+                            </a>
+                            <a href="{% url 'todos:todo_update' todo.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                            <a href="{% url 'todos:todo_delete' todo.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this todo?');">Delete</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <h4>No todos yet!</h4>
+        <p>Get started by creating your first todo.</p>
+        <a href="{% url 'todos:todo_create' %}" class="btn btn-primary">Create Your First Todo</a>
+    </div>
+{% endif %}
+{% endblock %}
+
