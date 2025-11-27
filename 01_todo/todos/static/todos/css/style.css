@@ -1,30 +1,50 @@
 /* Custom styles for Todo App */
 
 body {
-    background-color: #f8f9fa;
+    background-color:#f1f4f8; 
     min-height: 100vh;
+    font-family: 'Inter', sans-serif;
 }
 
 .navbar {
-    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    background-color: #86a2b5; 
+    height: 100px;
 }
 
-.card {
-    box-shadow: 0 2px 4px rgba(0,0,0,.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+.custom-nav a {
+    color: black;
+    text-decoration: none;
+}
+.small-heading {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+.card-style-1{
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
+    /* optional for smoother corners */
+    background-color: #fff;
+    padding: 1rem;
+}
+.card-style-1:hover {
+    transform: translateY(-5px) scale(1.02);
+    /* subtle lift and scale */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15),
+        0 6px 6px rgba(0, 0, 0, 0.1);
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,.15);
-}
-
-.card.border-success {
-    border-width: 2px !important;
+.card.border-green {
+    border:2px solid #2a9d8f;
 }
 
 .card-title del {
     color: #6c757d;
+}
+
+.btn-group-vertical .btn {
+    width: 8rem;
 }
 
 .btn-group-vertical .btn {
@@ -49,14 +69,41 @@ body {
     margin-left: 0.5rem;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .btn-group-vertical {
-        width: 100%;
-    }
+.btn.blue-btn {
+    background: #457b9d;
+    color: #fff;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.btn a {
+    color: #fff !important;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+}
+
+.btn.red-btn {
+    background-color: #e63946;
+}
+.btn.grey-btn {
+    background-color:#6a6767;
     
-    .btn-group-vertical .btn {
-        width: 100%;
-    }
+}
+.btn.mustard-btn {
+    background-color: #f4a261;
+}
+
+.btn,
+.badge.green-btn {
+    background-color: #2a9d8f;
+}
+
+.btn.blue-btn:hover {
+    background-color: #3a6780;
 }
 

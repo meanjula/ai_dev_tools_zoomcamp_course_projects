@@ -4,28 +4,28 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>My Todos</h1>
-    <a href="{% url 'todos:todo_create' %}" class="btn btn-primary">Create New Todo</a>
+    <h1 class="small-heading">My Todos</h1>
+    <a href="{% url 'todos:todo_create' %}" class="btn btn-primary blue-btn">Create New Todo</a>
 </div>
 
 {% if todos %}
     <div class="row">
         {% for todo in todos %}
         <div class="col-md-6 mb-3">
-            <div class="card {% if todo.is_resolved %}border-success{% endif %}">
+            <div class="card card-style-1 {% if todo.is_resolved %}border-green{% endif %}">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div class="flex-grow-1">
                             <h5 class="card-title">
                                 {% if todo.is_resolved %}
                                     <del>{{ todo.title }}</del>
-                                    <span class="badge bg-success">Resolved</span>
+                                    <span class="badge green-btn">Resolved</span>
                                 {% else %}
                                     {{ todo.title }}
                                 {% endif %}
                             </h5>
                             {% if todo.description %}
-                                <p class="card-text">{{ todo.description }}</p>
+                                <p class="card-text me-4">{{ todo.description }}</p>
                             {% endif %}
                             <small class="text-muted">
                                 Created: {{ todo.created_at|date:"M d, Y H:i" }}
@@ -34,12 +34,12 @@
                                 {% endif %}
                             </small>
                         </div>
-                        <div class="btn-group-vertical btn-group-sm">
-                            <a href="{% url 'todos:todo_toggle' todo.pk %}" class="btn btn-sm {% if todo.is_resolved %}btn-warning{% else %}btn-success{% endif %}">
+                        <div class="btn-group-vertical btn-group-sm flex-shrink-0">
+                            <a href="{% url 'todos:todo_toggle' todo.pk %}" class="btn btn-sm {% if todo.is_resolved %}mustard-btn{% else %}green-btn{% endif %}">
                                 {% if todo.is_resolved %}Mark Unresolved{% else %}Mark Resolved{% endif %}
                             </a>
-                            <a href="{% url 'todos:todo_update' todo.pk %}" class="btn btn-sm btn-primary">Edit</a>
-                            <a href="{% url 'todos:todo_delete' todo.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this todo?');">Delete</a>
+                            <a href="{% url 'todos:todo_update' todo.pk %}" class="btn btn-sm blue-btn">Edit</a>
+                            <a href="{% url 'todos:todo_delete' todo.pk %}" class="btn btn-sm red-btn" onclick="return confirm('Are you sure you want to delete this todo?');">Delete</a>
                         </div>
                     </div>
                 </div>

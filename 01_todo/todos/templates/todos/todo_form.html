@@ -48,8 +48,8 @@
                     {% endif %}
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Update{% else %}Create{% endif %} Todo</button>
-                        <a href="{% url 'todos:todo_list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary blue-btn">{% if form.instance.pk %}Update{% else %}Create{% endif %} Todo</button>
+                        <a href="{% url 'todos:todo_list' %}" class="btn grey-btn">Cancel</a>
                     </div>
                 </form>
             </div>
