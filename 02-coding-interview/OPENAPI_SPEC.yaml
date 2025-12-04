@@ -1,0 +1,889 @@
+openapi: 3.0.0
+info:
+  title: CodeCollab API
+  description: |
+    Real-time collaborative coding platform API specification.
+    This API provides endpoints for managing collaborative coding sessions,
+    user management, code execution, and real-time collaboration features.
+  version: 1.0.0
+  contact:
+    name: CodeCollab Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+  - url: https://api.codecollab.dev/api
+    description: Production server
+
+tags:
+  - name: Sessions
+    description: Session management endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Code Execution
+    description: Code execution endpoints
+  - name: Collaboration
+    description: Real-time collaboration endpoints
+
+paths:
+  /sessions:
+    post:
+      tags:
+        - Sessions
+      summary: Create a new coding session
+      description: Create a new collaborative coding session with initial configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - language
+                - ownerId
+              properties:
+                name:
+                  type: string
+                  description: Name of the coding session
+                  example: "Building React Components"
+                  minLength: 1
+                  maxLength: 255
+                language:
+                  $ref: '#/components/schemas/SupportedLanguage'
+                ownerId:
+                  type: string
+                  format: uuid
+                  description: User ID of the session owner
+                  example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Sessions
+      summary: List all sessions
+      description: Retrieve a list of all active coding sessions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: Maximum number of sessions to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Offset for pagination
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+                  total:
+                    type: integer
+                    description: Total number of sessions
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{sessionId}:
+    get:
+      tags:
+        - Sessions
+      summary: Get session details
+      description: Retrieve detailed information about a specific coding session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags:
+        - Sessions
+      summary: Update session details
+      description: Update session properties like name or language
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Updated session name
+                language:
+                  $ref: '#/components/schemas/SupportedLanguage'
+      responses:
+        '200':
+          description: Session updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict - Session cannot be updated
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Sessions
+      summary: Delete a session
+      description: Delete a coding session and remove all associated data
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      responses:
+        '204':
+          description: Session deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          description: Forbidden - Only session owner can delete
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{sessionId}/join:
+    post:
+      tags:
+        - Sessions
+      summary: Join an existing session
+      description: Add a user to an existing collaborative coding session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID joining the session
+      responses:
+        '200':
+          description: User joined session successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: User already in session
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{sessionId}/leave:
+    post:
+      tags:
+        - Sessions
+      summary: Leave a session
+      description: Remove a user from a collaborative coding session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID leaving the session
+      responses:
+        '204':
+          description: User left session successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{sessionId}/code:
+    get:
+      tags:
+        - Sessions
+      summary: Get current code
+      description: Retrieve the current code content of a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      responses:
+        '200':
+          description: Current code content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: Current code content
+                  language:
+                    $ref: '#/components/schemas/SupportedLanguage'
+                  lastModified:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Sessions
+      summary: Update session code
+      description: Update the code content in a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: Updated code content
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID making the change
+      responses:
+        '200':
+          description: Code updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  lastModified:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{sessionId}/language:
+    put:
+      tags:
+        - Sessions
+      summary: Change session language
+      description: Change the programming language of a session and reset code to template
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - language
+              properties:
+                language:
+                  $ref: '#/components/schemas/SupportedLanguage'
+      responses:
+        '200':
+          description: Language changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  language:
+                    $ref: '#/components/schemas/SupportedLanguage'
+                  code:
+                    type: string
+                    description: New template code for the language
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{sessionId}/participants:
+    get:
+      tags:
+        - Collaboration
+      summary: Get session participants
+      description: Retrieve list of all participants in a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      responses:
+        '200':
+          description: List of participants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  participants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  count:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{sessionId}/presence:
+    post:
+      tags:
+        - Collaboration
+      summary: Update user presence
+      description: Update cursor position and presence information for a user in a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique session identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID
+                cursor:
+                  type: object
+                  properties:
+                    line:
+                      type: integer
+                      description: Line number (1-indexed)
+                    column:
+                      type: integer
+                      description: Column number (1-indexed)
+                selection:
+                  type: object
+                  properties:
+                    startLine:
+                      type: integer
+                    startColumn:
+                      type: integer
+                    endLine:
+                      type: integer
+                    endColumn:
+                      type: integer
+      responses:
+        '204':
+          description: Presence updated successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users:
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      description: Create a new user for the collaboration platform
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: User display name
+                  minLength: 1
+                  maxLength: 255
+                  example: "John Doe"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get user details
+      description: Retrieve information about a specific user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique user identifier
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Update user information
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique user identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Updated user name
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /execute:
+    post:
+      tags:
+        - Code Execution
+      summary: Execute code
+      description: Execute code in a specific language and return the results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - language
+              properties:
+                code:
+                  type: string
+                  description: Code to execute
+                language:
+                  $ref: '#/components/schemas/SupportedLanguage'
+                timeout:
+                  type: integer
+                  description: Execution timeout in milliseconds
+                  default: 5000
+                  minimum: 100
+                  maximum: 30000
+      responses:
+        '200':
+          description: Code executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '408':
+          description: Execution timeout - code took too long to execute
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /execute/batch:
+    post:
+      tags:
+        - Code Execution
+      summary: Execute multiple code snippets
+      description: Execute multiple code snippets in parallel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - executions
+              properties:
+                executions:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - code
+                      - language
+                    properties:
+                      id:
+                        type: string
+                        description: Unique identifier for this execution
+                      code:
+                        type: string
+                      language:
+                        $ref: '#/components/schemas/SupportedLanguage'
+      responses:
+        '200':
+          description: Batch execution completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        result:
+                          $ref: '#/components/schemas/ExecutionResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      tags:
+        - Sessions
+      summary: Health check
+      description: Check if the API is running and healthy
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, degraded]
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    Session:
+      type: object
+      required:
+        - id
+        - name
+        - language
+        - code
+        - createdAt
+        - owner
+        - participants
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique session identifier
+        name:
+          type: string
+          description: Session name
+        language:
+          $ref: '#/components/schemas/SupportedLanguage'
+        code:
+          type: string
+          description: Current code content
+        createdAt:
+          type: string
+          format: date-time
+          description: Session creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+        owner:
+          $ref: '#/components/schemas/User'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+          description: List of users in the session
+        isActive:
+          type: boolean
+          description: Whether the session is currently active
+
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - color
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+        name:
+          type: string
+          description: User display name
+        color:
+          type: string
+          description: User color for UI representation (hex color code)
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          example: "#0ea5e9"
+        cursor:
+          type: object
+          nullable: true
+          properties:
+            line:
+              type: integer
+              description: Current line number
+            column:
+              type: integer
+              description: Current column number
+        createdAt:
+          type: string
+          format: date-time
+          description: User creation timestamp
+
+    ExecutionResult:
+      type: object
+      required:
+        - output
+        - executionTime
+      properties:
+        output:
+          type: string
+          description: Code execution output
+          nullable: true
+        error:
+          type: string
+          description: Error message if execution failed
+          nullable: true
+        executionTime:
+          type: number
+          format: double
+          description: Execution time in milliseconds
+          example: 125.5
+        exitCode:
+          type: integer
+          description: Process exit code
+          nullable: true
+
+    SupportedLanguage:
+      type: string
+      enum:
+        - javascript
+        - typescript
+        - python
+        - html
+        - css
+        - json
+      description: Supported programming languages
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "INVALID_REQUEST"
+            message: "Required field 'name' is missing"
+
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Authentication token is missing or invalid"
+
+    NotFound:
+      description: Not found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "NOT_FOUND"
+            message: "Session not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "INTERNAL_ERROR"
+            message: "An unexpected error occurred"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+security:
+  - bearerAuth: []
