@@ -26,6 +26,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLoading(true);
     try {
       const session = await api.createSession(name, language, currentUser);
+      console.log('[SessionContext] createNewSession result:', { id: session.id, name: session.name });
       setCurrentSession(session);
       setCode(session.code);
       return session;

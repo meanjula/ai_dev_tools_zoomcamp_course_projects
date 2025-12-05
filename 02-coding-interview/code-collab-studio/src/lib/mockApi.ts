@@ -39,6 +39,7 @@ export const createSession = async (
   };
   
   sessions.set(session.id, session);
+  console.log('[mockApi] Created session:', { id: session.id, name: session.name, totalSessions: sessions.size });
   return session;
 };
 

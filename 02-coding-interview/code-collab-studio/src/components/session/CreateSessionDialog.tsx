@@ -20,6 +20,11 @@ export const CreateSessionDialog = () => {
   const handleCreate = async () => {
     if (!name.trim()) return;
     const session = await createNewSession(name.trim(), language);
+    if (!session || !session.id) {
+      console.error('[CreateSessionDialog] Session creation failed:', session);
+      return;
+    }
+    console.log('[CreateSessionDialog] Session created:', { id: session.id, name: session.name });
     setOpen(false);
     setName('');
     navigate(`/session/${session.id}`);

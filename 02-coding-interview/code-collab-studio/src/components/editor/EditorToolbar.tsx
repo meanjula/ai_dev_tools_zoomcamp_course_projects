@@ -7,26 +7,112 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 export const EditorToolbar = () => {
-  const { currentSession, leaveCurrentSession } = useSession();
+  const { currentSession, leaveCurrentSession, code } = useSession();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleShare = () => {
-    const shareUrl = `${window.location.origin}/session/${currentSession?.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast({
-      title: 'Link copied!',
-      description: 'Share this link with collaborators to join the session.',
-    });
+const copyToClipboard = async (text: string): Promise<boolean> => {
+  // 1. Preferred modern API
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fail silently and continue to fallback
+    }
+  }
+
+  // 2. Fallback (required for Safari/iOS/WebViews)
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "-9999px";
+
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const ok = document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+
+/*   const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      // Try modern Clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        console.log('[EditorToolbar] Clipboard API succeeded');
+        return true;
+      }
+    } catch (err) {
+      console.warn('[EditorToolbar] Clipboard API failed:', err);
+    }
+
+    // Fallback: use textarea + execCommand
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (success) {
+        console.log('[EditorToolbar] execCommand fallback succeeded');
+        return true;
+      }
+    } catch (err) {
+      console.error('[EditorToolbar] execCommand fallback failed:', err);
+    }
+
+    return false;
+  }; */
+
+  const handleShare = async () => {
+    if (!currentSession?.id) {
+      console.error('[EditorToolbar] No session ID found for sharing.');
+      toast({ title: 'Error', description: 'Session ID not available.', variant: 'destructive' });
+      return;
+    }
+    const shareUrl = `${window.location.origin}/session/${currentSession.id}`;
+    const success = await copyToClipboard(shareUrl);
+    if (success) {
+      toast({
+        title: 'Link copied!',
+        description: 'Share this link with collaborators to join the session.',
+      });
+    } else {
+      toast({ title: 'Copy failed', description: 'Could not copy link to clipboard. Try manually copying the URL.', variant: 'destructive' });
+    }
   };
 
-  const handleCopyCode = () => {
-    if (currentSession) {
-      navigator.clipboard.writeText(currentSession.code);
+  const handleCopyCode = async () => {
+    console.log('[EditorToolbar] Copying code to clipboard. Code length:', code?.length);
+    if (!code) {
+      toast({
+        title: 'No code to copy',
+        description: 'The code editor is empty.',
+      });
+      return;
+    }
+    const success = await copyToClipboard(code);
+    if (success) {
       toast({
         title: 'Code copied!',
         description: 'Code has been copied to clipboard.',
       });
+    } else {
+      toast({ title: 'Copy failed', description: 'Could not copy code to clipboard. Try manually selecting and copying.', variant: 'destructive' });
     }
   };
 
