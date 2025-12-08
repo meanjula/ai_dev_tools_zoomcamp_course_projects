@@ -20,7 +20,7 @@ export const UserPresence = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const allUsers = [currentUser, ...collaborators];
+  const allUsers = currentUser ? [currentUser, ...collaborators] : collaborators;
 
   return (
     <div className="flex items-center gap-3">
@@ -47,7 +47,7 @@ export const UserPresence = () => {
                     color: 'white'
                   }}
                 >
-                  {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  {user.name && user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
             </TooltipTrigger>

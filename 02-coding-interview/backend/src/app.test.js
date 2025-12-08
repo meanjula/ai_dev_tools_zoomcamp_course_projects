@@ -31,7 +31,7 @@ describe('CodeCollab API', () => {
           expect(res.body.id).to.exist;
           expect(res.body.name).to.equal('Alice');
           expect(res.body.color).to.match(/^#[0-9A-Fa-f]{6}$/);
-          expect(res.body.createdAt).to.exist;
+          expect(res.body.created_at).to.exist;
           userId = res.body.id;
           done();
         });
@@ -89,7 +89,7 @@ describe('CodeCollab API', () => {
     it('should create a session', (done) => {
       request(app)
         .post('/api/sessions')
-        .send({ name: 'My Coding Session', language: 'javascript', ownerId: userId })
+        .send({ name: 'My Coding Session', language: 'javascript', userId })
         .expect(201)
         .end((err, res) => {
           if (err) return done(err);
@@ -116,13 +116,13 @@ describe('CodeCollab API', () => {
         });
     });
 
-    it('should fail to create session with non-existent owner', (done) => {
+    it('should fail to create session with non-existent user', (done) => {
       request(app)
         .post('/api/sessions')
         .send({
-          name: 'Bad Owner',
+          name: 'Bad User',
           language: 'python',
-          ownerId: '00000000-0000-0000-0000-000000000000'
+          userId: '00000000-0000-0000-0000-000000000000'
         })
         .expect(400)
         .end((err, res) => {

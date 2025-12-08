@@ -43,7 +43,7 @@ paths:
               required:
                 - name
                 - language
-                - ownerId
+                - userIdId
               properties:
                 name:
                   type: string
@@ -53,7 +53,7 @@ paths:
                   maxLength: 255
                 language:
                   $ref: '#/components/schemas/SupportedLanguage'
-                ownerId:
+                userId:
                   type: string
                   format: uuid
                   description: User ID of the session owner

@@ -44,40 +44,6 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
 }
 
 
-/*   const copyToClipboard = async (text: string): Promise<boolean> => {
-    try {
-      // Try modern Clipboard API first
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        console.log('[EditorToolbar] Clipboard API succeeded');
-        return true;
-      }
-    } catch (err) {
-      console.warn('[EditorToolbar] Clipboard API failed:', err);
-    }
-
-    // Fallback: use textarea + execCommand
-    try {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      textarea.style.top = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      const success = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      if (success) {
-        console.log('[EditorToolbar] execCommand fallback succeeded');
-        return true;
-      }
-    } catch (err) {
-      console.error('[EditorToolbar] execCommand fallback failed:', err);
-    }
-
-    return false;
-  }; */
-
   const handleShare = async () => {
     if (!currentSession?.id) {
       console.error('[EditorToolbar] No session ID found for sharing.');
@@ -97,7 +63,6 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
   };
 
   const handleCopyCode = async () => {
-    console.log('[EditorToolbar] Copying code to clipboard. Code length:', code?.length);
     if (!code) {
       toast({
         title: 'No code to copy',

@@ -2,137 +2,149 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Session, User, ExecutionResult, SupportedLanguage } from '@/types/session';
 import { DEFAULT_CODE } from '@/types/session';
 
-// Simulated delay for API calls
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Backend API URL from environment or default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-// Mock user colors
-const USER_COLORS = [
-  '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
-];
+// Helper for API calls
+async function apiCall<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${API_URL}${endpoint}`;
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
 
-// Mock sessions storage
-let sessions: Map<string, Session> = new Map();
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || `API error: ${response.status}`);
+  }
+
+  return response.json();
+}
 
 // Generate random user
-export const generateUser = (name?: string): User => ({
-  id: uuidv4(),
-  name: name || `User-${Math.random().toString(36).substring(2, 6)}`,
-  color: USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)],
-});
+export const generateUser = async (name?: string): Promise<User> => {
+  const userName = name || `User-${Math.random().toString(36).substring(2, 6)}`;
+  return apiCall('/users', {
+    method: 'POST',
+    body: JSON.stringify({ name: userName }),
+  });
+};
 
 // Create a new session
 export const createSession = async (
   name: string,
   language: SupportedLanguage,
-  owner: User
+  user: User
 ): Promise<Session> => {
-  await delay(300);
+  const session: Session = await apiCall('/sessions', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      language,
+      userId: user.id,
+    }),
+  });
   
-  const session: Session = {
-    id: uuidv4(),
-    name,
-    language,
-    code: DEFAULT_CODE[language],
-    createdAt: new Date(),
-    owner,
-    participants: [owner],
-  };
-  
-  sessions.set(session.id, session);
-  console.log('[mockApi] Created session:', { id: session.id, name: session.name, totalSessions: sessions.size });
+  console.log('[api] Created session:', { id: session.id, name: session.name });
   return session;
 };
 
 // Join an existing session
 export const joinSession = async (sessionId: string, user: User): Promise<Session | null> => {
-  await delay(200);
-  
-  const session = sessions.get(sessionId);
-  if (!session) return null;
-  
-  // Add user if not already in session
-  if (!session.participants.find(p => p.id === user.id)) {
-    session.participants.push(user);
+  try {
+    return await apiCall(`/sessions/${sessionId}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ userId: user.id }),
+    });
+  } catch {
+    return null;
   }
-  
-  return session;
 };
 
 // Get session by ID
 export const getSession = async (sessionId: string): Promise<Session | null> => {
-  await delay(100);
-  return sessions.get(sessionId) || null;
+  try {
+    return await apiCall(`/sessions/${sessionId}`);
+  } catch {
+    return null;
+  }
 };
 
 // Update session code
-export const updateSessionCode = async (sessionId: string, code: string): Promise<boolean> => {
-  const session = sessions.get(sessionId);
-  if (!session) return false;
-  
-  session.code = code;
-  return true;
+export const updateSessionCode = async (
+  sessionId: string,
+  code: string,
+  userId: string
+): Promise<boolean> => {
+  try {
+    await apiCall(`/sessions/${sessionId}/code`, {
+      method: 'PUT',
+      body: JSON.stringify({ code, userId }),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating code:', error);
+    return false;
+  }
 };
 
 // Update session language
 export const updateSessionLanguage = async (
-  sessionId: string, 
+  sessionId: string,
   language: SupportedLanguage
 ): Promise<boolean> => {
-  const session = sessions.get(sessionId);
-  if (!session) return false;
-  
-  session.language = language;
-  session.code = DEFAULT_CODE[language];
-  return true;
+  try {
+    await apiCall(`/sessions/${sessionId}/language`, {
+      method: 'PUT',
+      body: JSON.stringify({ language }),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating language:', error);
+    return false;
+  }
 };
 
 // Leave session
 export const leaveSession = async (sessionId: string, userId: string): Promise<void> => {
-  await delay(100);
-  
-  const session = sessions.get(sessionId);
-  if (session) {
-    session.participants = session.participants.filter(p => p.id !== userId);
+  try {
+    await apiCall(`/sessions/${sessionId}/leave`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  } catch (error) {
+    console.error('Error leaving session:', error);
   }
 };
 
-// Execute code (mock execution)
+// Execute code
 export const executeCode = async (
-  code: string, 
+  code: string,
   language: SupportedLanguage
 ): Promise<ExecutionResult> => {
-  await delay(500);
-  
   const startTime = performance.now();
   
   try {
-    if (language === 'javascript' || language === 'typescript') {
-      // Safe evaluation using Function constructor
-      const logs: string[] = [];
-      const mockConsole = {
-        log: (...args: unknown[]) => logs.push(args.map(String).join(' ')),
-        error: (...args: unknown[]) => logs.push(`Error: ${args.map(String).join(' ')}`),
-        warn: (...args: unknown[]) => logs.push(`Warning: ${args.map(String).join(' ')}`),
-      };
-      
-      const fn = new Function('console', code);
-      fn(mockConsole);
-      
-      return {
-        output: logs.join('\n') || '(No output)',
-        executionTime: performance.now() - startTime,
-      };
-    }
+    const result: ExecutionResult = await apiCall('/execute', {
+      method: 'POST',
+      body: JSON.stringify({ code, language }),
+    });
     
-    // Mock output for other languages
     return {
-      output: `[Mock execution for ${language}]\n\nCode received (${code.length} characters)\nNote: Full execution requires backend integration.`,
+      output: result.output || '',
+      error: result.error,
       executionTime: performance.now() - startTime,
     };
   } catch (error) {
     return {
       output: '',
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      error: error instanceof Error ? error.message : 'Execution failed',
       executionTime: performance.now() - startTime,
     };
   }
@@ -146,8 +158,10 @@ export const getMockCollaborators = (): User[] => [
 
 // List recent sessions
 export const listSessions = async (): Promise<Session[]> => {
-  await delay(200);
-  return Array.from(sessions.values()).sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-  );
+  try {
+    const result: { sessions: Session[] } = await apiCall('/sessions?limit=50&offset=0');
+    return result.sessions || [];
+  } catch {
+    return [];
+  }
 };

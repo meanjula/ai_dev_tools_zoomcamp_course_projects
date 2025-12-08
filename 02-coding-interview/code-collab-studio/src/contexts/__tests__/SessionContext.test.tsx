@@ -3,16 +3,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SessionProvider, useSession } from '@/contexts/SessionContext';
 import * as mockApi from '@/lib/mockApi';
 import type { Session, User } from '@/types/session';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock the API module
 vi.mock('@/lib/mockApi');
 
 const mockedApi = mockApi as unknown as {
-  generateUser: () => User;
+  generateUser: (name?: string) => Promise<User>;
   createSession: (name: string, language: string, owner: User) => Promise<Session>;
   joinSession: (id: string, user: User) => Promise<Session | null>;
-  updateSessionCode: (id: string, code: string) => Promise<boolean>;
+  updateSessionCode: (id: string, code: string, userId: string) => Promise<boolean>;
   updateSessionLanguage: (id: string, language: string) => Promise<boolean>;
   getSession: (id: string) => Promise<Session | null>;
   leaveSession: (id: string, userId: string) => Promise<void>;
@@ -58,7 +58,7 @@ function TestConsumer() {
 describe('SessionContext', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockedApi.generateUser = vi.fn(() => SAMPLE_USER);
+    mockedApi.generateUser = vi.fn(async () => SAMPLE_USER);
     mockedApi.createSession = vi.fn(async () => SAMPLE_SESSION);
     mockedApi.joinSession = vi.fn(async () => SAMPLE_SESSION);
     mockedApi.updateSessionCode = vi.fn(async () => true);
@@ -67,12 +67,26 @@ describe('SessionContext', () => {
     mockedApi.leaveSession = vi.fn(async () => undefined);
   });
 
+  it('initializes user on mount', async () => {
+    render(
+      <SessionProvider>
+        <TestConsumer />
+      </SessionProvider>
+    );
+
+    await waitFor(() => expect(screen.getByTestId('user-id').textContent).toBe('user-1'), { timeout: 2000 });
+    expect(mockedApi.generateUser).toHaveBeenCalled();
+  });
+
   it('creates a new session', async () => {
     render(
       <SessionProvider>
         <TestConsumer />
       </SessionProvider>
     );
+
+    // Wait for user to initialize
+    await waitFor(() => expect(screen.getByTestId('user-id').textContent).toBe('user-1'), { timeout: 2000 });
 
     fireEvent.click(screen.getByText('create'));
 
@@ -88,6 +102,8 @@ describe('SessionContext', () => {
       </SessionProvider>
     );
 
+    await waitFor(() => expect(screen.getByTestId('user-id').textContent).toBe('user-1'), { timeout: 2000 });
+
     fireEvent.click(screen.getByText('join'));
 
     await waitFor(() => expect(screen.getByTestId('session-id').textContent).toBe('session-1'));
@@ -101,13 +117,15 @@ describe('SessionContext', () => {
       </SessionProvider>
     );
 
-    // first create session so currentSession is set
+    await waitFor(() => expect(screen.getByTestId('user-id').textContent).toBe('user-1'), { timeout: 2000 });
+
+    // First create session so currentSession is set
     fireEvent.click(screen.getByText('create'));
     await waitFor(() => expect(screen.getByTestId('session-id').textContent).toBe('session-1'));
 
     fireEvent.click(screen.getByText('updateCode'));
 
-    await waitFor(() => expect(mockedApi.updateSessionCode).toHaveBeenCalledWith('session-1', "console.log('updated')"));
+    await waitFor(() => expect(mockedApi.updateSessionCode).toHaveBeenCalledWith('session-1', "console.log('updated')", 'user-1'));
     expect(screen.getByTestId('code').textContent).toBe("console.log('updated')");
   });
 
@@ -117,6 +135,8 @@ describe('SessionContext', () => {
         <TestConsumer />
       </SessionProvider>
     );
+
+    await waitFor(() => expect(screen.getByTestId('user-id').textContent).toBe('user-1'), { timeout: 2000 });
 
     fireEvent.click(screen.getByText('create'));
     await waitFor(() => expect(screen.getByTestId('session-id').textContent).toBe('session-1'));
@@ -133,6 +153,8 @@ describe('SessionContext', () => {
         <TestConsumer />
       </SessionProvider>
     );
+
+    await waitFor(() => expect(screen.getByTestId('user-id').textContent).toBe('user-1'), { timeout: 2000 });
 
     fireEvent.click(screen.getByText('create'));
     await waitFor(() => expect(screen.getByTestId('session-id').textContent).toBe('session-1'));

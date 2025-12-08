@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { Session, User, SupportedLanguage } from '@/types/session';
 import * as api from '@/lib/mockApi';
@@ -17,12 +18,21 @@ interface SessionContextType {
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser] = useState<User>(() => api.generateUser());
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [code, setCode] = useState('');
 
+  // Initialize user from backend on mount
+  useEffect(() => {
+    (async () => {
+      const user = await api.generateUser();
+      setCurrentUser(user);
+    })();
+  }, []);
+
   const createNewSession = useCallback(async (name: string, language: SupportedLanguage) => {
+    if (!currentUser) return null as unknown as Session;
     setIsLoading(true);
     try {
       const session = await api.createSession(name, language, currentUser);
@@ -36,6 +46,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [currentUser]);
 
   const joinExistingSession = useCallback(async (sessionId: string) => {
+    if (!currentUser) return null;
     setIsLoading(true);
     try {
       const session = await api.joinSession(sessionId, currentUser);
@@ -51,10 +62,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateCode = useCallback((newCode: string) => {
     setCode(newCode);
-    if (currentSession) {
-      api.updateSessionCode(currentSession.id, newCode);
+    if (currentSession && currentUser) {
+      api.updateSessionCode(currentSession.id, newCode, currentUser.id);
     }
-  }, [currentSession]);
+  }, [currentSession, currentUser]);
 
   const updateLanguage = useCallback(async (language: SupportedLanguage) => {
     if (currentSession) {
@@ -68,12 +79,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [currentSession]);
 
   const leaveCurrentSession = useCallback(() => {
-    if (currentSession) {
+    if (currentSession && currentUser) {
       api.leaveSession(currentSession.id, currentUser.id);
       setCurrentSession(null);
       setCode('');
     }
-  }, [currentSession, currentUser.id]);
+  }, [currentSession, currentUser]);
 
   // Simulate real-time updates from other users
   useEffect(() => {
@@ -100,7 +111,25 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [currentSession, currentUser.id]);
+  }, [currentSession, currentUser]);
+
+  if (!currentUser) {
+    return (
+      <SessionContext.Provider value={{
+        currentUser: {} as User,
+        currentSession: null,
+        isLoading: true,
+        createNewSession: async () => null as unknown as Session,
+        joinExistingSession: async () => null,
+        updateCode: () => {},
+        updateLanguage: async () => {},
+        leaveCurrentSession: () => {},
+        code: '',
+      }}>
+        {children}
+      </SessionContext.Provider>
+    );
+  }
 
   return (
     <SessionContext.Provider value={{

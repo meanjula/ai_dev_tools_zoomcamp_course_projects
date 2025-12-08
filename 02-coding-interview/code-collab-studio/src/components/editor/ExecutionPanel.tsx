@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useSession } from '@/contexts/SessionContext';
@@ -64,15 +66,19 @@ export const ExecutionPanel = ({ className }: ExecutionPanelProps) => {
               <span>{result.executionTime.toFixed(2)}ms</span>
             </div>
             
-            {result.error ? (
-              <pre className="text-destructive whitespace-pre-wrap bg-destructive/10 p-3 rounded-md">
-                {result.error}
-              </pre>
-            ) : (
-              <pre className="whitespace-pre-wrap text-foreground bg-secondary/30 p-3 rounded-md">
-                {result.output}
-              </pre>
-            )}
+              {result.error ? (
+                <span className="text-destructive">{result.error}</span>
+              ) : (
+                <SyntaxHighlighter
+                  language={currentSession?.language || 'javascript'}
+                  style={vscDarkPlus}
+                  customStyle={{ background: 'none', fontSize: 13, margin: 0, padding: 0 }}
+                  showLineNumbers={false}
+                  wrapLongLines={true}
+                >
+                  {result.output || '(No output)'}
+                </SyntaxHighlighter>
+              )}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
