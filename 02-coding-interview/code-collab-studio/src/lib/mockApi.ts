@@ -2,8 +2,12 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Session, User, ExecutionResult, SupportedLanguage } from '@/types/session';
 import { DEFAULT_CODE } from '@/types/session';
 
-// Backend API URL from environment or default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Backend API URL from environment or default to host backend URL.
+// When running the static frontend served from Docker without an nginx proxy,
+// using the host backend URL makes the browser requests reach the backend
+// at `http://localhost:3000/api`. You can override this at build time with
+// `VITE_API_URL`.
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Helper for API calls
 async function apiCall<T>(
@@ -11,6 +15,10 @@ async function apiCall<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_URL}${endpoint}`;
+  // Helpful debug when API_URL was missing at build time
+  if (!import.meta.env.VITE_API_URL) {
+    console.warn('[mockApi] VITE_API_URL is not set; using', API_URL, 'for', endpoint);
+  }
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',

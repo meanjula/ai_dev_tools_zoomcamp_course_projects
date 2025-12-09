@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import type { Session, User, SupportedLanguage } from '@/types/session';
 import * as api from '@/lib/mockApi';
 
@@ -26,8 +27,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Initialize user from backend on mount
   useEffect(() => {
     (async () => {
-      const user = await api.generateUser();
-      setCurrentUser(user);
+      try {
+        const user = await api.generateUser();
+        setCurrentUser(user);
+      } catch (err) {
+        console.error('[SessionContext] generateUser failed, falling back to local user', err);
+        // Fallback local user so the UI remains usable when backend is unavailable
+        setCurrentUser({ id: uuidv4(), name: 'Local User', color: '#0ea5e9' } as unknown as User);
+      }
     })();
   }, []);
 

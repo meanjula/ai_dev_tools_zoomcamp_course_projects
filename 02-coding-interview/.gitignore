@@ -1,0 +1,13 @@
+# Ignore environment and secret files
+**/.env
+**/*.env
+secrets/
+!secrets/.gitkeep
+
+# Node artifacts
+node_modules/
+dist/
+
+# Editor
+.vscode/
+.DS_Store

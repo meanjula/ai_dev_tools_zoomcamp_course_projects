@@ -10,7 +10,7 @@ const adminPool = new Pool({
   password: process.env.DB_PASSWORD,
   host: process.env.DB_HOST ,
   port: process.env.DB_PORT ,
-  database: process.env.ADMIN_DB_NAME , // Connect to default postgres DB first
+  database: process.env.ADMIN_DB_NAME || 'postgres', // Connect to default postgres DB first
 });
 
 const dbName = process.env.DB_NAME || 'codecollab';
@@ -69,7 +69,8 @@ async function migrate() {
     console.log(`Database URL: postgresql://${process.env.DB_USER || 'postgres'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${dbName}`);
     
   } catch (err) {
-    console.error('❌ Migration failed:', err.message);
+    console.error('❌ Migration failed:');
+    console.error(err);
     process.exit(1);
   }
 }
