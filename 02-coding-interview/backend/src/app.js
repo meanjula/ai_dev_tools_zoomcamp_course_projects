@@ -6,7 +6,8 @@ const db = require('./db');
 
 const app = express();
 app.use(helmet());
-app.use(cors());
+const FRONTEND_URL = (process.env.FRONTEND_URL || '*').replace(/\/$/, '');
+app.use(cors({ origin: FRONTEND_URL }));
 app.use(express.json());
 
 // Health
@@ -22,7 +23,9 @@ app.post('/api/users', async (req, res) => {
     const user = await db.createUser({ name });
     res.status(201).json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /api/users error:', err);
+    // Send minimal error message but log full error server-side for debugging
+    res.status(500).json({ error: err && err.message ? err.message : 'internal_error' });
   }
 });
 
