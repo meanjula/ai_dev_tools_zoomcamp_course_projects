@@ -5,11 +5,14 @@ This document contains step-by-step commands and example settings to deploy the 
 - Backend: `backend/` (Node.js + Postgres)
 - Frontend: `code-collab-studio/` (Vite + React)
 
-Recommended order: 1) Database on Render, 2) Backend on Render, 3) Frontend on Netlify.
+Recommended order: 
+1. Database on Render, 
+2. Backend on Render, 
+3. Frontend on Netlify.
 
 ---
 
-## 1) Create a Managed Postgres on Render
+## 1 Create a Managed Postgres on Render
 
 1. In Render dashboard, create a new **Database > PostgreSQL** instance.
 2. Choose a plan and region.
@@ -22,7 +25,7 @@ Set them in Render later (service env) or use the connection details when runnin
 
 ---
 
-## 2) Apply schema / run migrations
+## 2 Apply schema / run migrations
 
 There are two simple ways to run migrations (both use `backend/src/migrate.js` and `backend/schema.sql`):
 
@@ -53,7 +56,7 @@ Notes about `migrate.js`:
 
 ---
 
-## 3) Deploy backend to Render
+## 3 Deploy backend to Render
 
 You have two deployment options:
 
@@ -75,7 +78,7 @@ Health check: the backend exposes a health endpoint at `/api/health`. Example: `
 
 ---
 
-## 4) Verify backend
+## 4 Verify backend
 
 - Check logs in Render to confirm the service started and migrations applied.
 - Curl the health endpoint:
@@ -88,7 +91,7 @@ Health check: the backend exposes a health endpoint at `/api/health`. Example: `
 
 ---
 
-## 5) Deploy frontend to Netlify
+## 5 Deploy frontend to Netlify
 
 1. In Netlify, create a new site from Git and connect your repo.
 2. Set the **Base directory** (publish/build root) to `code-collab-studio`.
@@ -122,7 +125,7 @@ Or add a minimal `netlify.toml` to the frontend root:
 
 ---
 
-## 6) CORS and security
+## 6 CORS and security
 
 - `backend/src/app.js` uses `cors()` with default options (allows all origins). For production, tighten this to only allow your Netlify domain, e.g.:
 
@@ -133,7 +136,7 @@ Or add a minimal `netlify.toml` to the frontend root:
 
 ---
 
-## 7) Useful commands (local/CI)
+## 7 Useful commands (local/CI)
 
 - Run backend locally with Postgres: (set env vars first)
   ```bash
@@ -156,9 +159,15 @@ Or add a minimal `netlify.toml` to the frontend root:
   npx serve -s dist
   ```
 
+- How to test auto-deploy immediately
+trigger Render deploy hook (if you have a Deploy Hook):
+```bash
+curl -X POST '<YOUR_RENDER_DEPLOY_HOOK_URL>'
+```
+
 ---
 
-## 8) Where files referenced live in this repo
+## 8 Where files referenced live in this repo
 
 - Backend entry: `backend/src/app.js` (exposes `/api/*` endpoints, health at `/api/health`)
 - Migrate script: `backend/src/migrate.js` (reads `backend/schema.sql`)
@@ -167,8 +176,6 @@ Or add a minimal `netlify.toml` to the frontend root:
 
 ---
 
-If you'd like, I can:
-- Generate a `netlify.toml` in `code-collab-studio/` with the example above, and
-- Create a short Render service checklist you can copy-paste into the Render UI.
-
-If you want me to create files or make small code changes (e.g. tighten CORS), say which one and I will apply it.
+### NOTE: 
+- both Netlify and Render do auto-deploy when you push to Git
+curl -X POST '<YOUR_RENDER_DEPLOY_HOOK_URL>'

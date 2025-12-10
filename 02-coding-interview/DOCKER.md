@@ -208,8 +208,3 @@ docker compose down -v
 
 ---
 
-If you'd like I can:
-- Add `CREATE EXTENSION IF NOT EXISTS pgcrypto;` to `backend/schema.sql` and commit it (safe and idempotent), or
-- Create a small `Makefile` or short bash scripts under `scripts/` to simplify the common docker and migration commands.
-
-Tell me which option you prefer and I will implement it.

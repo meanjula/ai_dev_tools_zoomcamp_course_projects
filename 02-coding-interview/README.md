@@ -130,9 +130,3 @@ Quick production notes:
 - `secrets/` — local-only secrets (gitignored)
 - `schema.sql` — DB schema used by migration script
 
-If you want, I can also:
-- Add a `netlify.toml` or `_redirects` file for you to deploy to Netlify with proxying.
-- Create a small deployment guide for a specific host (Render, Railway, Fly).
-
----
-If anything here should be tailored to your preferred production host, tell me which provider you want and I will add concrete deployment steps for that provider.
