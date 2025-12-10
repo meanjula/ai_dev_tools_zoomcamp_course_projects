@@ -18,7 +18,7 @@ Lightweight collaborative code editor used for interview practice (frontend + ba
 - **Repo layout**
 
 **Prerequisites**
-- Node 18+, npm
+- Node 25+, npm
 - Docker & Docker Compose (for containerized workflows)
 - Optional: `psql` client for manual DB queries
 
@@ -66,7 +66,6 @@ Lightweight collaborative code editor used for interview practice (frontend + ba
   - docker ps   
   - docker volume ls 
   - docker images 
-  
 
 **Database migrations**
 
@@ -99,12 +98,19 @@ Lightweight collaborative code editor used for interview practice (frontend + ba
 
 - Two common strategies:
   1. **Build-time injection (simple):** set `VITE_API_URL` during the frontend build so the compiled assets call your API endpoint (e.g. `https://api.myapp.com/api`). Configure this in Netlify under Site settings → Build & deploy → Environment.
-     - Build command: `cd code-collab-studio && npm ci && npm run build`
-     - Publish directory: `code-collab-studio/dist`
+     - Build command: `cd 02-coding-interview/code-collab-studio && npm ci && npm run build`
+     - Publish directory: `02-coding-interview/code-collab-studio/dist`
 
   2. **Proxy mode (recommended to avoid CORS):** let the frontend call relative `/api/*` and add a Netlify redirect/proxy to forward `/api/*` to your backend. Example `netlify.toml` or `_redirects` can be used (see repo docs above). This avoids cross-origin requests.
 
-- Backend + Postgres: host your backend and DB on a platform like Render, Railway, Fly, or DigitalOcean App Platform. Provide DB connection env vars as secrets and run migrations on deploy.
+- Backend + Postgres: host your backend and DB on a platform like Render. Provide DB connection env vars as secrets and run migrations on deploy.
+
+**See full deploy guide:** `README_DEPLOY.md` in this repository contains copy-paste Render + Netlify steps tailored to this project (how to create the Render Postgres, run migrations, deploy the backend, and set `VITE_API_URL` in Netlify).
+
+Quick production notes:
+- Netlify: set `VITE_API_URL` to `https://<your-backend>.onrender.com/api` in Site → Build & deploy → Environment (this is read at build time).
+- Render (backend): set `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` (or `DB_PASSWORD_FILE`), and `DB_NAME` in the service environment.
+- Backend CORS: set `FRONTEND_URL` (no trailing slash) in your backend envs and the server will allow that origin.
 
 **Troubleshooting**
 
