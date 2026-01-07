@@ -1,11 +1,11 @@
-""" from fastmcp import FastMCP """
+from fastmcp import FastMCP
 import requests
 import re
 from zipfile import ZipFile
 from io import BytesIO
 import html2text
 
-""" mcp = FastMCP("Demo 🚀") """
+mcp = FastMCP("Demo 🚀")
 
 def html_to_text_html2text(html: str) -> str:
     h = html2text.HTML2Text()
@@ -30,7 +30,7 @@ def fetch_markdown(url: str) -> str:
     text=html_to_text_html2text(resp.text)
     return text
 
-""" @mcp.tool() """
+@mcp.tool()
 def count_data(url: str) -> int:
     """Count occurrences of the word 'data' in the markdown content.
 
@@ -42,7 +42,7 @@ def count_data(url: str) -> int:
     data_count = len(list(re.finditer(r'(?={})'.format(re.escape("data")), markdown_response.lower())))
     return data_count
 
-""" @mcp.tool() """
+@mcp.tool()
 def download_github_data(url):
     """
     Download and extract markdown files from a GitHub repository ZIP archive.
@@ -70,8 +70,8 @@ def download_github_data(url):
 
 
 if __name__ == "__main__":
-  mdFiles = download_github_data("https://github.com/jlowin/fastmcp/archive/refs/heads/main.zip")
+  """ mdFiles = download_github_data("https://github.com/jlowin/fastmcp/archive/refs/heads/main.zip")
   print("Markdown Files in the repository:")
   for md in mdFiles:
-    print(md)
-  """   mcp.run() """
+    print(md) """
+mcp.run()
