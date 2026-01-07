@@ -1,74 +1,68 @@
-# MCP: web word-counter
+# 03-MCP Project
 
-Small MCP (Minimal Chat/CLI/Controller) project that provides a simple tool to
-count occurrences of a word on a web page. The repository includes a FastMCP
-tool `count_data` that fetches a page via `https://r.jina.ai/` and returns the
-count of the word "data" (several counting modes supported in examples).
+## Overview
+This project is a **Model Context Protocol (MCP) server** that provides tools for fetching and analyzing web content. It uses FastMCP to expose utilities for counting specific keywords and downloading GitHub repository files.
 
-**Contents**
-- `main.py` — MCP tool using `fastmcp` and `httpx` to fetch and count words.
-- `copilot_count.py`, `count/` — helper scripts and experiments.
+## Features
 
-## Install
+- **`count_data(url)`** - Counts occurrences of the word "data" in webpage content
+  - Fetches content via r.jina.ai (converts HTML to Markdown)
+  - Handles URLs with or without HTTP/HTTPS scheme
+  - Case-insensitive matching
 
-Create a virtual environment and install dependencies:
+- **`download_github_data(url)`** - Downloads and extracts Markdown files from GitHub repositories
+  - Accepts GitHub ZIP archive URLs
+  - Filters for `.md` and `.mdx` files only
+  - Returns a dictionary with file paths as keys and content as values
 
+## Setup
+
+### Prerequisites
+- Python 3.12+
+- `uv` package manager
+
+### Installation
+
+Add required packages:
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv add fastmcp requests
 ```
 
-If you don't have `requirements.txt`, install:
-
+Or install all dependencies:
 ```bash
-pip install fastmcp httpx
+uv sync
 ```
 
-## Run the MCP tool locally
+## Project Structure
 
-Start the MCP server (same command you use locally):
+```
+.
+├── main.py                 # FastMCP server implementation
+├── test.py                 # Unit tests for count_data()
+├── webScrapWithJina.py     # Additional web scraping utilities
+├── test.ipynb              # Jupyter notebook with examples
+├── pyproject.toml          # Project dependencies
+└── .vscode/mcp.json        # MCP server configuration
+```
 
+## Running the Server
+
+Start the MCP server:
 ```bash
-# run the MCP tool server
-python main.py
+uv run main.py
 ```
 
-Then call the tool (example using `curl` or your MCP client). The `count_data`
-tool returns the number of occurrences of the word "data" found in the
-markdown-rendered homepage (case-insensitive whole-word by default).
+The server will be available for clients to connect to via the configuration in `.vscode/mcp.json`.
 
-## Useful counting examples (Python)
+## Testing
 
-This project counts words using regex whole-word matching. For substring
-occurrences (including overlaps), use this helper:
-
-```python
-import re
-
-def count_substring(text: str, sub: str, case_sensitive: bool = False, overlapping: bool = True) -> int:
-		if not case_sensitive:
-				text = text.lower()
-				sub = sub.lower()
-		if not sub:
-				return 0
-		if overlapping:
-				return len(list(re.finditer(r'(?={})'.format(re.escape(sub)), text)))
-		else:
-				return text.count(sub)
-
-# Examples
-text = "Data datadata database"
-print(count_substring(text, "data"))             # -> 4 (case-insensitive, overlapping)
-print(count_substring(text, "data", overlapping=False))  # -> 3 (non-overlapping)
+Run the test suite:
+```bash
+pytest test.py
 ```
 
-## Notes
-- The MCP data-counter used in this project can be configured to count
-	whole-words (default) or substrings. If you need counts restricted to
-	visible text only (HTML-stripped), run an HTML-to-text extraction step first.
-- If you change `main.py`, restart the MCP server: stop the running process
-	(Ctrl+C) and re-run `python main.py`.
-
-## License
-Project is provided as-is. Add a license if desired.
+Tests include:
+- URL scheme handling (with/without http://)
+- Case-insensitive word counting
+- Overlapping matches
+- HTTP error handling
