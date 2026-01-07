@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "data-counter": {
+      "command": "uv",
+      "args": ["--directory", "/Users/tekendra/Desktop/Anjula/ai_dev_tools_zoomcamp_course_projects/03-mcp", "run", "main.py"]
+    }
+  }
+}
