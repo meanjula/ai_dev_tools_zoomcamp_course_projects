@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app } from '../server.js';
+// We'll import `app` after setting NODE_ENV to 'test' to avoid DB lookups during initialization
 import { expect } from 'chai';
 
 // Helper: create a fake fetch response with async iterable body
@@ -17,8 +17,11 @@ function makeStreamResponse(lines, delay = 0) {
 
 describe('Explain endpoint (mocked Ollama)', () => {
   let originalFetch;
+  let app;
 
-  before(() => {
+  before(async () => {
+    // Ensure server runs in test mode so it skips DB user lookups
+    process.env.NODE_ENV = 'test';
     // stub global fetch used by ollamaService
     originalFetch = global.fetch;
     global.fetch = async (url, opts) => {
@@ -34,6 +37,10 @@ describe('Explain endpoint (mocked Ollama)', () => {
       }
       return { ok: false, status: 404 };
     };
+
+    // Import the app after setting NODE_ENV
+    const srv = await import('../server.js');
+    app = srv.app;
   });
 
   after(() => {
@@ -45,7 +52,7 @@ describe('Explain endpoint (mocked Ollama)', () => {
 
     const res = await request(app)
       .post('/api/explain-code')
-      .send({ code: 'function add(a,b){return a+b}', language: 'javascript' })
+      .send({ code: 'function add(a,b){return a+b}', language: 'javascript', userId: 'test-user' })
       .set('Accept', 'application/json')
       .buffer(true)
       .parse((res, callback) => {

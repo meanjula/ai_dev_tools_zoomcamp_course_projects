@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: code-explainer-backend
+    env: node
+    plan: free
+    repo: https://github.com/your/repo
+    branch: main
+    buildCommand: "cd backend && npm install"
+    startCommand: "cd backend && npm start"
+    envVars:
+      - key: DATABASE_URL
+      - key: DATABASE_SSL
+      - key: NODE_ENV
+  - type: static
+    name: code-explainer-frontend
+    env: static
+    plan: free
+    repo: https://github.com/your/repo
+    branch: main
+    buildCommand: "cd frontend && npm install && npm run build"
+    startCommand: "cd frontend && npm run start"
+
+# One-off job to initialize DB schema
+jobs:
+  - name: init-db
+    type: build
+    env: node
+    plan: free
+    buildCommand: "cd backend && npm install"
+    startCommand: "node backend/scripts/init-db.mjs"

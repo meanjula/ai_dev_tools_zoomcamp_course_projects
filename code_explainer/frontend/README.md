@@ -35,7 +35,7 @@ code_explain_UI/
 ├── package.json
 ├── vite.config.js # Vite + Tailwind plugin config
 └── README.md
-
+frontend/
 ```
 ---
 
@@ -65,7 +65,7 @@ Make sure you have installed:
 ```
 
 ### Install Dependencies
-
+- Backend API running - inside backend `npm run dev`
 `npm install @tailwindcss/vite react-markdown``
 
 

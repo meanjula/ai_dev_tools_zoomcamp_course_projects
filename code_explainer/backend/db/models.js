@@ -43,3 +43,13 @@ export async function getChatMessages(chatId) {
   const res = await query('SELECT m.*, cs.id as code_id, cs.code, cs.language FROM messages m LEFT JOIN code_snippets cs ON cs.message_id = m.id WHERE chat_id=$1 ORDER BY m.created_at ASC', [chatId]);
   return res.rows;
 }
+
+export async function getUserByEmail(email) {
+  const res = await query('SELECT * FROM users WHERE email=$1', [email]);
+  return res.rows && res.rows.length ? res.rows[0] : null;
+}
+
+export async function getUserById(id) {
+  const res = await query('SELECT * FROM users WHERE id=$1', [id]);
+  return res.rows && res.rows.length ? res.rows[0] : null;
+}
