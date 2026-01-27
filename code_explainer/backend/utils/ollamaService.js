@@ -29,13 +29,12 @@ export function createOllamaPayload(messages, model = "llama3") {
  * Create a chat completion stream using the OpenAI client (configured to talk to Ollama).
  * Returns the raw response which contains an async iterable `body` for streaming.
  */
-export async function fetchOllamaStream(url, payload) {
+export async function fetchOllamaStream(url, payload, extraHeaders = {}) {
 	// POST to Ollama / OpenAI-compatible endpoint and return the streaming Response
+	const headers = Object.assign({ "Content-Type": "application/json" }, extraHeaders || {});
 	const res = await fetch(url, {
 		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
+		headers,
 		body: JSON.stringify(payload),
 	});
 
@@ -47,7 +46,7 @@ export async function fetchOllamaStream(url, payload) {
 		} catch (e) {}
 		const modelName = payload?.model || 'unknown';
 		const serverMsg = bodyText || res?.statusText || String(res?.status);
-		throw new Error(`Model '${modelName}' not available or Ollama returned error: ${serverMsg}`);
+		throw new Error(`Model '${modelName}' not available or LLM endpoint returned error: ${serverMsg}`);
 	}
 	return res;
 }

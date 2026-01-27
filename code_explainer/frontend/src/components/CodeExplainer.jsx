@@ -86,7 +86,7 @@ export default function App() {
     "llama2",
     "deepseek-v3.1",
     "qwen3",
-    "gpt-oss"
+    "gpt-oss(remote)"
   ];
  
   return (

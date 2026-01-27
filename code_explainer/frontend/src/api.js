@@ -55,13 +55,14 @@ export async function getMessages(chatId, token) {
  * @param {{code:string,language:string,chatId?:string,userId?:string,token?:string,model?:string}} opts
  * @returns {Promise<Response>}
  */
-export async function explainCode({ code, language, chatId, userId, token, model }) {
+export async function explainCode({ code, language, chatId, userId, token, model, provider }) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const body = { code, language };
   if (chatId) body.chatId = chatId;
   if (userId) body.userId = userId;
   if (model) body.model = model;
+  if (provider) body.provider = provider;
   const res = await fetch(`${BASE}/api/explain-code`, {
     method: 'POST',
     headers,

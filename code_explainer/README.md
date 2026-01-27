@@ -89,7 +89,7 @@ Start Ollama and pull models you want to use:
 
 ```bash
 ollama serve
-ollama pull llama3
+ollama pull llama3 (or any model you want to use)
 # optional larger models (make sure your machine has capacity):
 # ollama pull mistral-7b
 # ollama pull mixtral-8x7b
@@ -99,41 +99,106 @@ ollama list
 
 ---
 
-## Local development
+## TL;DR to quickly test
+Following is my deployment enpoint from automated deployment done in render. since main purpose of this project was to use local model, main focus will be to host privately with oss model but to 
+showcase deployment, i have used openai oss remote model using groq API. please choose that model and test it, test it only few times else groq will block my account :D
 
-Run the frontend and backend (separate terminals):
+https://code-explainer-1-qvje.onrender.com/
 
-Backend
+
+## End-to-end Setup, Run, Test & Deploy
+
+Follow these steps to run and verify the full system locally, then deploy safely.
+
+1) Clone & prerequisites
+
+```bash
+git clone <your-repo>
+cd code_explainer
+# Install Node deps for both services
+cd backend && npm ci
+cd ../frontend && npm ci
+```
+
+2) Run Ollama locally (recommended for testing)
+
+```bash
+# start Ollama locally and pull a model (run on the host where backend will connect)
+ollama run llama3 (or model you have chosen to use)
+```
+
+3) Local DB (optional) and init
+
+Use Postgres locally or a managed DB. To create schema locally:
 
 ```bash
 cd backend
-npm install
-# set DATABASE_URL and other env vars as needed
-npm run dev
+DATABASE_URL=postgres://user:pass@localhost:5432/code_explainer node scripts/init-db.mjs
 ```
 
-Frontend
+4) Start backend and frontend (development)
 
 ```bash
+# terminal 1 - backend
+cd backend
+export OLLAMA_URL=http://localhost:11434
+export OLLAMA_MODEL=llama3
+npm run dev
+
+# terminal 2 - frontend
 cd frontend
-npm install
 npm run dev
-# open http://localhost:5173 (Vite default) in browser
+# open http://localhost:5173
 ```
 
-If the frontend can't connect to Vite on port 5173, ensure `npm run dev` started successfully and note the URL Vite printed in terminal.
+5) Quick end-to-end test
 
-### Initialize Postgres schema (optional)
+From a separate shell, verify the backend register endpoint works:
 
-If you want persistence, configure `DATABASE_URL` then run the init script:
+```bash
+curl -v -H "Content-Type: application/json" \
+  -X POST http://localhost:3001/api/register \
+  -d '{"name":"test","email":"test@example.com"}'
+```
+
+Open the UI at `http://localhost:5173`, register/login and try an explanation. Local testing ensures Ollama and DB connectivity before deploying.
+
+6) Run backend tests
 
 ```bash
 cd backend
-# Option A: run the included script
-node ./scripts/init-db.mjs
-
-# Option B: let the server call initDB() on startup (server logs mention schema init)
+npm test
 ```
+
+7) Docker compose (optional)
+
+```bash
+docker-compose build
+docker-compose up
+# then init DB in container if needed
+docker-compose run --rm backend node scripts/init-db.mjs
+```
+
+8) Deploy to Render (example)
+
+- Commit `render.yaml` at repo root and push to your branch.
+- In Render dashboard: New → Import from GitHub / From Repository → connect repo. Render will read `render.yaml` and create services.
+- Set required environment variables in each service (do NOT commit secrets):
+  - Backend: `DATABASE_URL`, `DATABASE_SSL` (if required), `CORS_ORIGIN` (frontend origin), `OLLAMA_URL` (if Ollama is reachable from render), `OLLAMA_MODEL` (default), `REMOTE_LLM_URL` & `REMOTE_LLM_API_KEY` (optional)
+  - Frontend (Static Site): `VITE_API_URL` (backend public URL), `VITE_DEFAULT_MODEL` (optional)
+- Ensure `autoDeploy: true` is set for services you want CI/CD deploys for (this is enabled in the sample `render.yaml`).
+
+9) Best practice: Ollama in private network
+
+- For production, run Ollama on a private host or VM within the same network or VPC as your backend so the inference API is not publicly exposed.
+- Test everything locally (Ollama + backend + frontend) before deploying. When deploying, ensure the backend can reach `OLLAMA_URL` (private IP / internal hostname) and that only the backend network path is allowed.
+
+10) Troubleshooting common deployment issues
+
+- If frontend requests are blocked by the browser, set the backend `CORS_ORIGIN` to your frontend origin and redeploy backend.
+- If the backend can't connect to the DB, verify `DATABASE_URL` and `DATABASE_SSL` in service envs and consult Render logs.
+- If remote LLM integration fails, confirm `REMOTE_LLM_URL` and `REMOTE_LLM_API_KEY` and whether the provider expects `Authorization: Bearer` or an `x-api-key` header; adjust backend env or code accordingly.
+
 
 Note: The init script reads `backend/db/schema.sql` to create tables. For remote managed Postgres (e.g., Render), set `DATABASE_SSL=true` if required.
 
@@ -195,7 +260,7 @@ Frontend (Vite):
 
 - Current auth is intentionally simple (user id used as a Bearer token). For production, replace with JWTs or session-based auth and implement proper password handling.
 - Validate user input thoroughly and rate-limit the `/api/explain-code` endpoint to limit abuse.
-- When deploying, secure Ollama (do not expose its API to the public) and consider network isolation between your app and inference server.
+ - Validate user input thoroughly and rate-limit the `/api/explain-code` endpoint to limit abuse.
 
 ---
 
@@ -216,6 +281,29 @@ Add more tests to cover chat-history reuse and persistence paths.
 
 - For simple deployments, run Ollama on the same host and keep it private to your backend.
 - The repo includes a sample `render.yaml` and `backend/scripts/init-db.mjs` to help with a Render deployment (run the init job once to create schema and pull models as needed).
+
+### Render deployment (CI/CD and Auto Deploy)
+
+This project includes `render.yaml` so you can use Render's Infrastructure-as-Code or the dashboard to deploy both the backend and the frontend. To enable automated CI/CD deploys on Render:
+
+- Commit `render.yaml` at the repository root and push to your deploy branch (e.g. `main`).
+- In Render dashboard choose **New → Import from GitHub / From Repository** and connect the repo. Render will detect `render.yaml` and propose services.
+- Ensure each service in `render.yaml` has `autoDeploy: true` (the provided sample sets this for backend and frontend). This enables automatic builds on each push to the configured branch.
+- In the Render Service settings add the required environment variables and secrets (do not commit them):
+  - `DATABASE_URL` (or use the managed DB connection string)
+  - `DATABASE_SSL` (true/false as required)
+  - `OLLAMA_URL` (if you host Ollama elsewhere)
+  - `OLLAMA_MODEL` (default model)
+  - `REMOTE_LLM_URL` (optional — remote LLM streaming endpoint)
+  - `REMOTE_LLM_API_KEY` (optional secret for remote LLMs)
+
+- After the first deploy, copy the backend public URL into the frontend service `VITE_API_URL` environment variable and trigger a frontend redeploy (Render will redeploy automatically if `autoDeploy` is enabled when you push changes).
+
+Notes:
+- `autoDeploy: true` in `render.yaml` lets Render run builds and deploys on each push to the configured branch; you can still disable auto-deploy per service in the dashboard if you prefer manual control.
+- Keep secrets in Render's Environment / Secrets UI. For remote LLM API keys use `REMOTE_LLM_API_KEY` and the backend will send it as `Authorization: Bearer <key>` when `provider: "remote"` is requested.
+- If your remote LLM requires a different header (e.g. `x-api-key`), set `REMOTE_LLM_API_KEY_HEADER` in Render and I can wire the backend to read that header name instead.
+
 
 ---
 
@@ -253,6 +341,7 @@ Notes and recommendations:
 - To rebuild after code changes: `docker-compose build backend frontend && docker-compose up -d`.
 
 If you want, I can add an `init-db` one-off service to run the migration automatically on `docker-compose up`, or add an Ollama service entry if you have a container image for it.
+
 
 ## Contributing
 

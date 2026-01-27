@@ -31,11 +31,21 @@ import { initDB } from './db/index.js';
 import { createUser, createChat, addMessageWithOptionalCode, createMessage, getUserById, getChatMessages, getUserChats } from './db/models.js';
 
 const app = express();
-const corsOptions = {
-  origin: "http://localhost:5173", // Allow requests from this origin
-  credentials: true, // Allow cookies and credentials
-};
-app.use(cors(corsOptions));
+// Configure CORS from env: CORS_ORIGIN may be '*' or a comma-separated list.
+const rawOrigins = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const allowCredentials = String(process.env.CORS_ALLOW_CREDENTIALS || 'true').toLowerCase() === 'true';
+
+// Enforce a single origin in production/Render: do not allow '*' or comma lists there.
+if ((process.env.NODE_ENV === 'production' || process.env.RENDER) && (rawOrigins === '*' || rawOrigins.includes(','))) {
+  console.error('Invalid CORS_ORIGIN for production/Render. It must be a single origin (no "*" or comma-separated list). Found:', rawOrigins);
+  throw new Error('CORS_ORIGIN must be a single origin in production/Render (no "*" or lists).');
+}
+
+// `cors` accepts a boolean (reflect origin) or a string/array. For our use-case we pass
+// the single origin string in production, or true for wildcard in dev only.
+const corsOrigin = rawOrigins === '*' ? true : rawOrigins.trim().replace(/\/$/, '');
+const corsConfig = { origin: corsOrigin, credentials: allowCredentials };
+app.use(cors(corsConfig));
 app.use(helmet())
 app.use(express.json());
 
@@ -164,16 +174,46 @@ app.post("/api/explain-code", async (req, res) => {
         console.log('Using Ollama model:', model);
         const payload = createOllamaPayload(messages, model);
 
-    //Connect to Ollama API stream
+    //Connect to Ollama API stream or a remote OpenAI-compatible LLM endpoint
+    const REMOTE_LLM_URL = process.env.REMOTE_LLM_URL;
+    const REMOTE_LLM_API_KEY = process.env.REMOTE_LLM_API_KEY;
+    const REMOTE_LLM_API_KEY_HEADER = process.env.REMOTE_LLM_API_KEY_HEADER || 'Authorization';
+
     let ollamaResponse;
     try {
-      ollamaResponse = await fetchOllamaStream("http://localhost:11434/api/chat", payload);
-      console.log("✅ Connected to Ollama stream");
+      // If the selected model is the remote "gpt-oss(remote)" option, prefer REMOTE_LLM_URL
+      if (String(model).toLowerCase() === 'gpt-oss(remote)' && REMOTE_LLM_URL) {
+        const headerValue = REMOTE_LLM_API_KEY ? (REMOTE_LLM_API_KEY_HEADER === 'Authorization' ? `Bearer ${REMOTE_LLM_API_KEY}` : REMOTE_LLM_API_KEY) : null;
+        const extraHeaders = {};
+        if (headerValue) extraHeaders[REMOTE_LLM_API_KEY_HEADER] = headerValue;
+        // Allow overriding the remote provider model name via env. Useful when "gpt-oss(remote)"
+        // is a frontend selection but the remote provider exposes another model name.
+        const remoteModel = process.env.REMOTE_LLM_MODEL || (String(model).toLowerCase() === 'gpt-oss(remote)' ? 'openai/gpt-oss-20b' : payload.model);
+        const payloadForRemote = { ...payload, model: remoteModel };
+        console.log('Using remote LLM endpoint:', REMOTE_LLM_URL, 'model:', remoteModel);
+        ollamaResponse = await fetchOllamaStream(REMOTE_LLM_URL, payloadForRemote, extraHeaders);
+      } else {
+        // Default: local Ollama HTTP API
+        const localUrl = process.env.OLLAMA_URL || "http://localhost:11434/api/chat";
+        ollamaResponse = await fetchOllamaStream(localUrl, payload);
+      }
+      console.log("✅ Connected to LLM stream");
     } catch (modelErr) {
-      console.error('Ollama request failed', modelErr);
+      console.error('LLM request failed', modelErr);
       const msg = modelErr?.message || 'Model not available';
       // Inform client via NDJSON error token with an actionable message
-      res.write(JSON.stringify({ type: 'error', message: `Model ${model} is not available locally. Run: ollama pull ${model}` }) + "\n");
+      if (String(model).toLowerCase() === 'gpt-oss(remote)' && REMOTE_LLM_URL) {
+        // If the remote provider rejects the model, provide a helpful hint to set REMOTE_LLM_MODEL
+        let hint = '';
+        try {
+          if (String(msg).includes('model_not_found') || String(msg).includes('does not exist')) {
+            hint = `; set REMOTE_LLM_MODEL to a valid model name for ${REMOTE_LLM_URL}`;
+          }
+        } catch {}
+        res.write(JSON.stringify({ type: 'error', message: `Remote LLM endpoint error: ${msg}${hint}` }) + "\n");
+      } else {
+        res.write(JSON.stringify({ type: 'error', message: `Model ${model} is not available locally. Run: ollama pull ${model}` }) + "\n");
+      }
       res.end();
       return;
     }
@@ -235,4 +275,3 @@ if (process.env.NODE_ENV !== "test") {
     }
   })();
 }
-
