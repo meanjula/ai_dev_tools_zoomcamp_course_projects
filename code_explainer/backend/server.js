@@ -165,11 +165,18 @@ app.post("/api/explain-code", async (req, res) => {
         const payload = createOllamaPayload(messages, model);
 
     //Connect to Ollama API stream
-    const ollamaResponse = await fetchOllamaStream(
-      "http://localhost:11434/api/chat",
-      payload
-    );
-    console.log("✅ Connected to Ollama stream");
+    let ollamaResponse;
+    try {
+      ollamaResponse = await fetchOllamaStream("http://localhost:11434/api/chat", payload);
+      console.log("✅ Connected to Ollama stream");
+    } catch (modelErr) {
+      console.error('Ollama request failed', modelErr);
+      const msg = modelErr?.message || 'Model not available';
+      // Inform client via NDJSON error token with an actionable message
+      res.write(JSON.stringify({ type: 'error', message: `Model ${model} is not available locally. Run: ollama pull ${model}` }) + "\n");
+      res.end();
+      return;
+    }
 
     let fullText = await processOllamaStream(ollamaResponse, (token) => {
       //Stream each token to client as NDJSON
@@ -192,10 +199,11 @@ app.post("/api/explain-code", async (req, res) => {
     res.end();
   } catch (error) {
     console.error("API error", error);
+    const msg = (error && error.message) ? error.message : 'Server error or Ollama not running.';
     res.write(
       JSON.stringify({
         type: "error",
-        message: "Server error or Ollama not running.",
+        message: msg,
       }) + "\n"
     );
     res.end();

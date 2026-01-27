@@ -1,4 +1,51 @@
+# Render infrastructure spec for the project.
+# Replace <owner>/<repo> and secret placeholders before applying.
+
 services:
+  - type: web
+    name: code-explainer-backend
+    repo: github.com/<owner>/<repo>
+    branch: main
+    env: node
+    plan: free
+    buildCommand: cd backend && npm ci
+    startCommand: cd backend && NODE_ENV=production node server.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        # Leave blank to use a Render Database or set to your external DB
+        value: ""
+      - key: OLLAMA_URL
+        value: "http://localhost:11434"
+      - key: OLLAMA_MODEL
+        value: "llama3"
+
+  - type: static
+    name: code-explainer-frontend
+    repo: github.com/<owner>/<repo>
+    branch: main
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_URL
+        value: ""
+      - key: VITE_DEFAULT_MODEL
+        value: "llama3"
+
+databases:
+  - name: code-explainer-db
+    plan: starter
+
+# Notes:
+# - Replace repo entries with your GitHub repo 'owner/repo'.
+# - For production use, set `DATABASE_URL` to the managed DB connection string
+#   or set up the Render managed Postgres and use its connection string.
+# - `OLLAMA_URL` must point to a reachable Ollama server for the backend.
+#   If you don't have a hosted Ollama endpoint, consider using Ollama Cloud
+#   (if available) or host Ollama on a VM accessible to Render.services:
   - type: web
     name: code-explainer-backend
     env: node

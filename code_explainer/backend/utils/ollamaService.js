@@ -38,7 +38,17 @@ export async function fetchOllamaStream(url, payload) {
 		},
 		body: JSON.stringify(payload),
 	});
-	if (!res) throw new Error(`No response from model: ${res.status}`);
+
+	// If Ollama returned a non-OK status, read the body (if any) and throw a helpful error.
+	if (!res || !res.ok) {
+		let bodyText = '';
+		try {
+			bodyText = await res.text();
+		} catch (e) {}
+		const modelName = payload?.model || 'unknown';
+		const serverMsg = bodyText || res?.statusText || String(res?.status);
+		throw new Error(`Model '${modelName}' not available or Ollama returned error: ${serverMsg}`);
+	}
 	return res;
 }
 

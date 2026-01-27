@@ -1,0 +1,15 @@
+[build]
+  # Build command runs inside the project root — it changes to the frontend folder
+  command = "cd frontend && npm ci && npm run build"
+  publish = "frontend/dist"
+
+[context.production.environment]
+# Set site-specific environment variables in Netlify UI instead of committing secrets here.
+# Example (set these in Netlify Site settings -> Environment):
+# VITE_API_URL = "https://your-backend.onrender.com"
+# VITE_DEFAULT_MODEL = "llama3"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

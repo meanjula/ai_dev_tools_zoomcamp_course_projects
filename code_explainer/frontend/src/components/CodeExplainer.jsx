@@ -15,6 +15,8 @@ export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [authEmail, setAuthEmail] = useState("");
   const [authName, setAuthName] = useState("");
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
   const explanationRef = useRef(null);
   const scrollToBottom = () => {
@@ -28,9 +30,8 @@ export default function App() {
     try {
       const token = authUser?.id;
       const res = await explainCode({ code, language, userId: authUser?.id, token, model });
-      if (!res.ok) throw new Error("Server returned an error");
 
-      // Stream the NDJSON response
+      // Stream the NDJSON response (do not throw on non-ok so we can parse error NDJSON)
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let firstChunkSeen = false;

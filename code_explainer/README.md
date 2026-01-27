@@ -219,6 +219,41 @@ Add more tests to cover chat-history reuse and persistence paths.
 
 ---
 
+## Docker / Containerization
+
+This project includes Dockerfiles for the `backend` and `frontend`, plus a `docker-compose.yml` that runs:
+- `db` (Postgres)
+- `backend` (Express)
+- `frontend` (built static site served by nginx)
+
+Quick local run (from the repository root):
+
+```bash
+# build images
+docker-compose build
+
+# bring services up (attached)
+docker-compose up
+```
+
+Initialize the Postgres schema (run once after DB is up):
+
+```bash
+# runs the init script inside the backend container
+docker-compose run --rm backend node scripts/init-db.mjs
+```
+
+Service endpoints after `up`:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
+
+Notes and recommendations:
+- Ollama is not included in the compose setup — you must run `ollama serve` on the host or provide an Ollama container and update `docker-compose.yml` accordingly.
+- The compose file uses a simple Postgres password for convenience. Replace credentials with secrets in production.
+- To rebuild after code changes: `docker-compose build backend frontend && docker-compose up -d`.
+
+If you want, I can add an `init-db` one-off service to run the migration automatically on `docker-compose up`, or add an Ollama service entry if you have a container image for it.
+
 ## Contributing
 
 Contributions welcome. Open an issue describing your change and submit a PR that keeps the frontend/backed separation intact. Add tests for backend behavior that manipulates persisted data.
