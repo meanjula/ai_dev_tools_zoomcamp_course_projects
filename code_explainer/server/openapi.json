@@ -1,0 +1,116 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Code Explainer (Ollama-backed)",
+    "version": "1.0.0",
+    "description": "API that accepts source code and returns an explanation streamed from a local Ollama model. The server proxies requests to Ollama and streams NDJSON tokens back to the client."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Local API gateway (this server proxies to Ollama)"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Server is running",
+            "content": {
+              "text/plain": {
+                "schema": { "type": "string" },
+                "example": "Server is running!"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/explain-code": {
+      "post": {
+        "tags": ["Explainer"],
+        "operationId": "explainCode",
+        "summary": "Explain code via Ollama",
+        "description": "Send code and language; the server forwards the request to the local Ollama/OpenAI-compatible runtime and streams the explanation back as NDJSON lines.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ExplainRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Streaming NDJSON (application/x-ndjson) - each line is a JSON object (token/done/error)",
+            "content": {
+              "application/x-ndjson": {
+                "schema": { "type": "string" },
+                "examples": {
+                  "stream": {
+                    "summary": "NDJSON stream example",
+                    "value": "{\"type\":\"token\",\"content\":\"Explain the function...\"}\\n{\"type\":\"done\",\"content\":\"Full explanation text\"}\\n"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (missing fields)",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Server or Ollama error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ExplainRequest": {
+        "type": "object",
+        "required": ["code", "language"],
+        "properties": {
+          "code": { "type": "string", "description": "Source code to explain" },
+          "language": { "type": "string", "description": "Programming language (e.g., javascript, python)" }
+        }
+      },
+      "TokenMessage": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["token"] },
+          "content": { "type": "string" }
+        }
+      },
+      "DoneMessage": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["done"] },
+          "content": { "type": "string" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Explainer",
+      "description": "Code explanation endpoints that proxy to the local Ollama runtime"
+    }
+  ],
+  "x-ollama": {
+    "description": "Vendor extension describing the Ollama runtime used by the API",
+    "host": "http://localhost:11434",
+    "models": ["llama3"],
+    "notes": "This API proxies requests to a local Ollama instance (or OpenAI-compatible server). The client should call this server's /api/explain-code endpoint; streaming is performed as NDJSON lines."
+  }
+}
